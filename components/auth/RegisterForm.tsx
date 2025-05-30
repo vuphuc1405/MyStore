@@ -1,16 +1,21 @@
 // components/auth/RegisterForm.tsx
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
-import { signUpUser } from '@/lib/actions/authActions'; // Server Action
+import { useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
+import { signUpUser } from '@/lib/actions/authActions'; // Server Action của bạn
 import Link from 'next/link';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation'; // Import useRouter
 
+// Khai báo initialState
 const initialState = {
   message: '',
   error: null as string | null,
-  // success: false, // Có thể thêm trường này nếu muốn xử lý thành công cụ thể hơn trước khi redirect
+  success: false, // success flag để xử lý trong useEffect
 };
 
+// Component SubmitButton
 function SubmitButton() {
   const { pending } = useFormStatus();
 
@@ -26,18 +31,19 @@ function SubmitButton() {
   );
 }
 
+// Component RegisterForm
 export default function RegisterForm() {
-  const [state, formAction] = useFormState(signUpUser, initialState);
+  const router = useRouter(); // Khởi tạo router ở đây
+  const [state, formAction] = useActionState(signUpUser, initialState);
 
-  // useEffect(() => {
-  //   if (state?.success && !state.error) {
-  //     // Không cần thiết nếu Server Action đã redirect
-  //     // alert(state.message || 'Đăng ký thành công! Vui lòng đăng nhập.');
-  //     // router.push('/auth/login');
-  //   } else if (state?.error) {
-  //     // alert(`Lỗi: ${state.error}`);
-  //   }
-  // }, [state, router]);
+  useEffect(() => {
+    if (state?.success && !state.error) {
+      alert(state.message || 'Đăng ký thành công! Vui lòng đăng nhập.');
+      router.push('/auth/login'); // Bây giờ router đã được định nghĩa
+    } else if (state?.error) {
+      alert(`Lỗi: ${state.error}`);
+    }
+  }, [state, router]); // Thêm router vào mảng dependency
 
   return (
     <form action={formAction} className="space-y-6">
@@ -95,14 +101,14 @@ export default function RegisterForm() {
             type="password"
             autoComplete="new-password"
             required
-            minLength={6} // Supabase yêu cầu mật khẩu tối thiểu 6 ký tự
+            minLength={6}
             className="block w-full px-3 py-2 placeholder-gray-400 border border-gray-300 rounded-md shadow-sm appearance-none focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
             placeholder="********"
           />
         </div>
       </div>
 
-       <div>
+      <div>
         <label
           htmlFor="confirmPassword"
           className="block text-sm font-medium text-gray-700"
@@ -122,13 +128,13 @@ export default function RegisterForm() {
         </div>
       </div>
 
-      {/* Hiển thị thông báo lỗi hoặc thành công từ Server Action */}
       {state?.error && (
         <p className="text-sm text-red-600">{state.error}</p>
       )}
-      {state?.message && !state.error && ( // Thông báo chung (ví dụ: "Vui lòng kiểm tra email để xác thực")
-        <p className="text-sm text-green-600">{state.message}</p>
+      {state?.message && !state.error && !state.success && (
+         <p className="text-sm text-green-600">{state.message}</p>
       )}
+
 
       <div>
         <SubmitButton />

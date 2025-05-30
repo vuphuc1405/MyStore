@@ -8,11 +8,13 @@ import Link from 'next/link';
 type AuthState = {
   message: string;
   error: string | null;
+  success: boolean;
 };
 
 const initialState: AuthState = {
   message: '',
   error: null,
+  success: false,
 };
 
 function SubmitButton() {

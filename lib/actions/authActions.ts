@@ -6,6 +6,8 @@ import { redirect } from 'next/navigation';
 export type AuthState = {
   message: string;
   error: string | null;
+  success: boolean;
+  
 };
 
 /**
