@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
-import { AuthProvider } from "@/lib/hooks/useAuth";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 const geist = Geist({ subsets: ['latin'] });
 

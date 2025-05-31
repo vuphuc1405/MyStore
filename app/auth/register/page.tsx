@@ -3,6 +3,8 @@ import RegisterForm from '@/components/auth/RegisterForm';
 import { createClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import Image from 'next/image';
+import { assets } from '@/assets/assets';
 
 export default async function RegisterPage() {
   const supabase = await createClient();
@@ -17,12 +19,14 @@ export default async function RegisterPage() {
   return (
     <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8 bg-gray-50">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        {/* Thay bằng logo của bạn nếu có */}
-        <img
-          className="mx-auto h-10 w-auto"
-          src="https://tailwindui.com/img/logos/mark.svg?color=indigo&shade=600"
-          alt="MyStore Logo"
-        />
+      <Image
+                className="mx-auto h-12 w-auto"
+                src={assets.logo}
+                alt="Logo"
+                width={48}
+                height={48}
+                priority
+              />
         <h2 className="mt-6 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">
           Tạo tài khoản mới
         </h2>

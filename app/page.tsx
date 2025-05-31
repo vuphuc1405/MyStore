@@ -7,7 +7,6 @@ import Subscription from "@/components/ui/Subscription";
 import ProductItem from "@/components/ui/ProductItem";
 import FeaturedProducts from "@/components/ui/FeaturedProducts";
 import Link from "next/link";
-
 export default function Home() {
   return (
     <><Header />
@@ -16,6 +15,7 @@ export default function Home() {
       <FeaturedProducts />
       <Subscription />
       <Footer />
+      
       </>
   );
 }
