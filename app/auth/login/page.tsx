@@ -1,6 +1,5 @@
 import LoginForm from '@/components/auth/LoginForm';
 import { createClient } from '@/lib/supabase/server';
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import Image from 'next/image';
 import { assets } from '@/assets/assets';

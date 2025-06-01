@@ -1,17 +1,19 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Search, ShoppingCart, User, LogOut, Settings } from 'lucide-react';
 import { assets } from '@/assets/assets';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext'; // Đảm bảo đường dẫn này đúng
+
 const Header: React.FC = () => {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
-  const { user, isLoading, signOut } = useAuth();
+  const { user, isLoading, signOut, refreshUser } = useAuth();
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -20,12 +22,12 @@ const Header: React.FC = () => {
     }
   };
 
-  // Hàm đăng xuất
+  // Hàm đăng xuất được cải thiện
   const handleSignOut = async () => {
     try {
-      await signOut();
       setShowDropdown(false);
-      router.push('/');
+      await signOut();
+      // Không cần router.push('/') vì signOut trong AuthContext đã xử lý redirect
     } catch (error) {
       console.error('Lỗi khi đăng xuất:', error);
     }
@@ -41,6 +43,30 @@ const Header: React.FC = () => {
     }
     return 'U';
   };
+
+  // Đóng dropdown khi click bên ngoài
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+
+    if (showDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showDropdown]);
+
+  // Refresh user data khi component mount (optional)
+  useEffect(() => {
+    if (!user && !isLoading) {
+      refreshUser?.();
+    }
+  }, [user, isLoading, refreshUser]);
 
   return (
     <header className="bg-white shadow-md sticky top-0 z-50">
@@ -93,72 +119,81 @@ const Header: React.FC = () => {
             {isLoading ? (
               <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse"></div>
             ) : user ? (
-              // Hiển thị avatar và dropdown menu khi đã đăng nhập
-              <div className="relative">
+              // Hiển thị chỉ avatar và dropdown menu khi đã đăng nhập
+              <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setShowDropdown(!showDropdown)}
-                  className="flex items-center space-x-2 text-gray-700 hover:text-gray-900 focus:outline-none"
+                  className="flex items-center text-gray-700 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-full p-1"
                 >
                   {user.avatar ? (
                     <img
                       src={user.avatar}
                       alt="Avatar"
-                      className="w-8 h-8 rounded-full object-cover border-2 border-gray-200"
+                      className="w-8 h-8 rounded-full object-cover border-2 border-gray-200 hover:border-blue-300 transition-colors"
                     />
                   ) : (
-                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-medium hover:bg-blue-700 transition-colors">
                       {getInitials(user.name, user.email)}
                     </div>
                   )}
-                  <span className="hidden md:block text-sm font-medium max-w-20 truncate">
-                    {user.name || user.email.split('@')[0]}
-                  </span>
-                  <svg
-                    className={`w-4 h-4 transition-transform hidden md:block ${showDropdown ? 'rotate-180' : ''}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
                 </button>
 
                 {/* Dropdown Menu */}
                 {showDropdown && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border">
-                    <div className="px-4 py-2 border-b">
-                      <p className="text-sm font-medium text-gray-900 truncate">{user.name || 'Người dùng'}</p>
-                      <p className="text-sm text-gray-500 truncate">{user.email}</p>
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
+                    {/* Thông tin người dùng hiển thị trong dropdown */}
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <div className="flex items-center space-x-3">
+                        {user.avatar ? (
+                          <img
+                            src={user.avatar}
+                            alt="Avatar"
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-medium">
+                            {getInitials(user.name, user.email)}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {user.name || 'Người dùng'}
+                          </p>
+                          <p className="text-sm text-gray-500 truncate">{user.email}</p>
+                        </div>
+                      </div>
                     </div>
+                    
                     <Link
                       href="/profile"
-                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                       onClick={() => setShowDropdown(false)}
                     >
-                      <User className="w-4 h-4 mr-2" />
+                      <User className="w-4 h-4 mr-3" />
                       Hồ sơ cá nhân
                     </Link>
                     <Link
                       href="/orders"
-                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                       onClick={() => setShowDropdown(false)}
                     >
-                      <ShoppingCart className="w-4 h-4 mr-2" />
+                      <ShoppingCart className="w-4 h-4 mr-3" />
                       Đơn hàng của tôi
                     </Link>
                     <Link
                       href="/settings"
-                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                       onClick={() => setShowDropdown(false)}
                     >
-                      <Settings className="w-4 h-4 mr-2" />
+                      <Settings className="w-4 h-4 mr-3" />
                       Cài đặt
                     </Link>
+                    <hr className="my-1" />
                     <button
                       onClick={handleSignOut}
-                      className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left"
+                      className="w-full flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors text-left"
                     >
-                      <LogOut className="w-4 h-4 mr-2" />
+                      <LogOut className="w-4 h-4 mr-3" />
                       Đăng xuất
                     </button>
                   </div>
@@ -167,7 +202,7 @@ const Header: React.FC = () => {
             ) : (
               // Hiển thị nút đăng nhập khi chưa đăng nhập
               <Link href="/auth/login">
-                <button className="bg-blue-500 text-white px-4 py-2 text-sm rounded-md hover:bg-blue-600 transition-colors">
+                <button className="bg-blue-500 text-white px-4 py-2 text-sm rounded-md hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                   Đăng nhập
                 </button>
               </Link>
@@ -175,6 +210,7 @@ const Header: React.FC = () => {
           </div>
         </div>
 
+        {/* Mobile Search */}
         <div className="sm:hidden py-2 px-4">
           <form onSubmit={handleSearchSubmit} className="flex items-center w-full">
             <input
@@ -193,14 +229,6 @@ const Header: React.FC = () => {
           </form>
         </div>
       </div>
-
-      {/* Overlay để đóng dropdown khi click bên ngoài */}
-      {showDropdown && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={() => setShowDropdown(false)}
-        ></div>
-      )}
     </header>
   );
 };

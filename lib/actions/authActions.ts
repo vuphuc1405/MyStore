@@ -1,8 +1,9 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-
+import { headers } from 'next/headers';
 export type AuthState = {
   message: string;
   error: string | null;
@@ -19,7 +20,15 @@ export type User = {
 export async function signUpUser(_prevState: AuthState, formData: FormData): Promise<AuthState> {
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
-  const fullName = formData.get('fullName') as string; // Lấy fullName từ form
+  const fullName = formData.get('fullName') as string;
+
+  if (!email || !password) {
+    return {
+      message: '',
+      error: 'Email và mật khẩu không được để trống.',
+      success: false,
+    };
+  }
 
   const supabase = await createClient();
 
@@ -42,8 +51,14 @@ export async function signUpUser(_prevState: AuthState, formData: FormData): Pro
     };
   }
 
-  // Đăng ký thành công → chuyển sang trang đăng nhập
-  redirect('/auth/login');
+  // Revalidate để cập nhật cache
+  revalidatePath('/');
+  
+  return {
+    message: 'Đăng ký thành công! Vui lòng kiểm tra email để xác nhận tài khoản.',
+    error: null,
+    success: true,
+  };
 }
 
 export async function signInUser(_prevState: AuthState, formData: FormData): Promise<AuthState> {
@@ -74,13 +89,50 @@ export async function signInUser(_prevState: AuthState, formData: FormData): Pro
     };
   }
 
-  // Đăng nhập thành công → chuyển về trang chủ
-  redirect('/');
+  // Revalidate tất cả các route có thể bị ảnh hưởng
+  revalidatePath('/', 'layout');
+  
+  // Có thể redirect về trang chính hoặc dashboard
+  redirect('/'); // Hoặc redirect('/');
+
+}
+export async function requestPasswordReset(
+  _prevState: AuthState, // Trạng thái trước đó từ useFormState
+  formData: FormData
+): Promise<AuthState> {
+  const email = formData.get('email') as string;
+
+  if (!email) {
+    return {
+      message: 'Vui lòng nhập địa chỉ email của bạn.',
+      error: 'Email là bắt buộc.', // Hoặc bạn có thể gộp lỗi này vào message
+      success: false,
+    };
+  }
+
+  const supabase = await createClient(); 
+  const origin = (await headers()).get('origin'); 
+  const redirectTo = `${origin}/auth/update-password`;
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: redirectTo,
+  });
+  if (error) {
+    console.error('Request Password Reset Error:', error.message);
+    return {
+      message: 'Nếu tài khoản của bạn tồn tại, bạn sẽ nhận được email hướng dẫn đặt lại mật khẩu trong vài phút nữa.',
+      error: null, 
+      success: true, 
+    };
+  }
+
+  return {
+    message: 'Nếu tài khoản của bạn tồn tại, bạn sẽ nhận được email hướng dẫn đặt lại mật khẩu trong vài phút nữa.',
+    error: null,
+    success: true,
+  };
 }
 
-/**
- * Lấy thông tin user hiện tại
- */
 export async function getCurrentUser(): Promise<User | null> {
   try {
     const supabase = await createClient();
@@ -103,21 +155,25 @@ export async function getCurrentUser(): Promise<User | null> {
   }
 }
 
-/**
- * Xử lý đăng xuất
- */
 export async function signOutUser(): Promise<void> {
-  const supabase = await createClient();
+  try {
+    const supabase = await createClient();
 
-  const { error } = await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
 
-  if (error) {
-    console.error('Sign out error:', error.message);
-    throw new Error(`Đăng xuất thất bại: ${error.message}`);
+    if (error) {
+      console.error('Sign out error:', error.message);
+      throw new Error(`Đăng xuất thất bại: ${error.message}`);
+    }
+
+    // Revalidate và redirect sau khi đăng xuất
+    revalidatePath('/', 'layout');
+    redirect('/auth/login'); // hoặc trang chủ
+    
+  } catch (error) {
+    console.error('Sign out error:', error);
+    throw new Error('Có lỗi xảy ra khi đăng xuất.');
   }
-
-  // Đăng xuất thành công → quay về trang đăng nhập
-  redirect('/auth/login');
 }
 
 /**

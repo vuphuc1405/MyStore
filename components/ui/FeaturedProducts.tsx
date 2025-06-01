@@ -23,7 +23,7 @@ const FeaturedItem: React.FC<FeaturedItemProps> = ({
         className="h-48 w-full object-contain rounded-lg mb-4"
       />
       <h4 className="font-semibold text-lg mb-2">{title}</h4>
-      <p className="text-xl font-bold text-blue-600 mb-3">${price}</p>
+      <p className="text-xl font-bold text-blue-600 mb-3">{price}đ</p>
       <button className="mt-auto bg-blue-600 text-white px-6 py-2 rounded-full font-medium hover:bg-blue-700 transition">
         {callToAction}
       </button>

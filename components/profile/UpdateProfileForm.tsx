@@ -1,7 +1,7 @@
 'use client';
-
+import { useActionState } from 'react';
 import { updateUserProfile } from '@/lib/actions/userActions';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
 import { useEffect } from 'react';
 
 interface UserProfileData {
@@ -35,7 +35,7 @@ function SubmitButton() {
 }
 
 export default function UpdateProfileForm({ userProfile }: UpdateProfileFormProps) {
-    const [state, formAction] = useFormState(updateUserProfile, initialState);
+    const [state, formAction] = useActionState(updateUserProfile, initialState);
 
     useEffect(() => {
         if (state.message && !state.error) {
